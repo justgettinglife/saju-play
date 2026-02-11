@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>사주놀이 (Demo)</title>
+  <style>body{font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", Arial; padding:20px; max-width:760px; margin:0 auto}label{display:block;margin-top:8px}button{margin-top:12px;padding:8px 12px}</style>
+</head>
+<body>
+  <h1>사주놀이 (간단 데모)</h1>
+  <p>생년월일과 시를 입력하면 간단한 사주(연·월·일·시)와 오행 요약을 보여줍니다. (정확한 해석은 전문 서비스 참고)</p>
+  <form id="form">
+    <label>생년 (YYYY)<input id="y" required></label>
+    <label>생월 (MM)<input id="m" required></label>
+    <label>생일 (DD)<input id="d" required></label>
+    <label>출생시 (0-23)<input id="h" required></label>
+    <label>달력 유형<select id="cal"><option value="solar">양력</option><option value="lunar">음력</option></select></label>
+    <button type="submit">사주 보기</button>
+  </form>
+  <div id="result" style="margin-top:20px;white-space:pre-line"></div>
+
+  <script>
+    function simpleBazi(y,m,d,h){
+      // 아주 간단한 데모: 연월일시를 그대로 보여주고 오행 카운트(의미 없음)
+      const pillars = ['연','월','일','시'];
+      const vals = [y,m,d,h];
+      const ohaeng = ['목','화','토','금','수'];
+      // pseudo-random assignment for demo only
+      const elements = vals.map(v=>ohaeng[(Number(v)||0)%5]);
+      return {pillars,vals,elements};
+    }
+
+    document.getElementById('form').addEventListener('submit',e=>{
+      e.preventDefault();
+      const y=document.getElementById('y').value;
+      const m=document.getElementById('m').value;
+      const d=document.getElementById('d').value;
+      const h=document.getElementById('h').value;
+      const cal=document.getElementById('cal').value;
+      const out=simpleBazi(y,m,d,h);
+      let text = `입력: ${y}-${m}-${d} ${h}시 (${cal})\n\n`;
+      text += '사주(간단):\n';
+      out.pillars.forEach((p,i)=>{text += `${p}: ${out.vals[i]} -> ${out.elements[i]}\n`});
+      text += '\n오행 요약(데모):\n';
+      const counts={목:0,화:0,토:0,금:0,수:0}; out.elements.forEach(e=>counts[e]++);
+      for(const k of Object.keys(counts)) text += `${k}: ${counts[k]}\n`;
+      text += '\n(주의) 이 데모는 간단한 예시용입니다. 정확한 사주 해석은 전문 라이브러리/전문가를 사용하세요.';
+      document.getElementById('result').textContent = text;
+    });
+  </script>
+</body>
+</html>
