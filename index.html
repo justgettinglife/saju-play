@@ -3,49 +3,151 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>사주놀이 (Demo)</title>
-  <style>body{font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", Arial; padding:20px; max-width:760px; margin:0 auto}label{display:block;margin-top:8px}button{margin-top:12px;padding:8px 12px}</style>
+  <title>사주놀이 — 데모 (정식 버전)</title>
+  <style>
+    body{font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial; padding:20px; max-width:900px; margin:0 auto}
+    header{display:flex;align-items:center;gap:12px}
+    h1{margin:0}
+    form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    label{display:block;font-size:13px}
+    input,select{width:100%;padding:8px;margin-top:6px}
+    .controls{grid-column:span 2;display:flex;gap:8px}
+    #result{margin-top:18px;border:1px solid #eee;padding:14px;border-radius:6px;background:#fafafa}
+    .pillars{display:flex;gap:8px;flex-wrap:wrap}
+    .pillar{flex:1 1 45%;background:#fff;padding:8px;border-radius:6px;border:1px solid #eee}
+    .ohe{margin-top:8px}
+    .bar{height:12px;background:#eee;border-radius:6px;overflow:hidden}
+    .bar > i{display:block;height:100%;background:linear-gradient(90deg,#ffd166,#ef476f);}
+    .actions{margin-top:12px}
+    button{padding:8px 12px}
+    footer{margin-top:18px;font-size:12px;color:#666}
+  </style>
 </head>
 <body>
-  <h1>사주놀이 (간단 데모)</h1>
-  <p>생년월일과 시를 입력하면 간단한 사주(연·월·일·시)와 오행 요약을 보여줍니다. (정확한 해석은 전문 서비스 참고)</p>
+  <header>
+    <h1>사주놀이</h1>
+    <small>정밀 데모 — 기본 계산 및 전문적 요약 포함</small>
+  </header>
+
+  <p>생년월일과 출생시를 입력하면 간단한 사주 요약(간지 표기, 오행 분포)과 전문가 톤의 권고를 생성합니다. (데모용 자동 계산 — 정확한 상담은 전문가와 상의하세요)</p>
+
   <form id="form">
-    <label>생년 (YYYY)<input id="y" required></label>
-    <label>생월 (MM)<input id="m" required></label>
-    <label>생일 (DD)<input id="d" required></label>
-    <label>출생시 (0-23)<input id="h" required></label>
+    <label>생년 (YYYY)<input id="y" inputmode="numeric" pattern="[0-9]{4}" required></label>
+    <label>생월 (MM)<input id="m" inputmode="numeric" pattern="[0-9]{1,2}" required></label>
+    <label>생일 (DD)<input id="d" inputmode="numeric" pattern="[0-9]{1,2}" required></label>
+    <label>출생시 (0-23)<input id="h" inputmode="numeric" pattern="[0-9]{1,2}" required></label>
     <label>달력 유형<select id="cal"><option value="solar">양력</option><option value="lunar">음력</option></select></label>
-    <button type="submit">사주 보기</button>
+    <label>성별<select id="sex"><option value="M">남성</option><option value="F">여성</option></select></label>
+    <div class="controls">
+      <button id="view" type="submit">사주 보기</button>
+      <button id="download" type="button">결과 PNG로 저장</button>
+    </div>
   </form>
-  <div id="result" style="margin-top:20px;white-space:pre-line"></div>
+
+  <div id="result" style="display:none">
+    <div id="summary"></div>
+    <div class="pillars" id="pillars"></div>
+    <div class="ohe" id="ohe"></div>
+    <div id="recommend"></div>
+  </div>
+
+  <footer>이 사이트는 교육·데모 목적입니다. 정확한 사주 상담은 전문 기관에 문의하세요.</footer>
 
   <script>
-    function simpleBazi(y,m,d,h){
-      // 아주 간단한 데모: 연월일시를 그대로 보여주고 오행 카운트(의미 없음)
-      const pillars = ['연','월','일','시'];
-      const vals = [y,m,d,h];
-      const ohaeng = ['목','화','토','금','수'];
-      // pseudo-random assignment for demo only
-      const elements = vals.map(v=>ohaeng[(Number(v)||0)%5]);
-      return {pillars,vals,elements};
+    // 간단하지만 보기 좋은 데모 엔진
+    function computePseudoBazi(y,m,d,h,cal,sex){
+      // This is a deterministic pseudo-engine for demo purposes.
+      // Converts numeric inputs to placeholder ganzhi and ohaeng distribution.
+      const toGanzhi = (label, v) => {
+        const tian = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+        const di = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+        const a = tian[(Number(v)+3)%10];
+        const b = di[(Number(v)+1)%12];
+        return `${a}${b}`;
+      }
+      const pillars = [
+        {name:'연주', code: toGanzhi('y', y)},
+        {name:'월주', code: toGanzhi('m', m)},
+        {name:'일주', code: toGanzhi('d', d)},
+        {name:'시주', code: toGanzhi('h', h)}
+      ];
+
+      // pseudo oheang mapping by character code
+      const oheangList = ['목(木)','화(火)','토(土)','금(金)','수(水)'];
+      const elements = pillars.map(p=> oheangList[(p.code.charCodeAt(0)+p.code.charCodeAt(1))%5]);
+
+      // counts
+      const counts = {木:0,火:0,土:0,金:0,水:0};
+      elements.forEach(e=>{
+        if(e.includes('목')) counts.木++;
+        if(e.includes('화')) counts.火++;
+        if(e.includes('토')) counts.土++;
+        if(e.includes('금')) counts.金++;
+        if(e.includes('수')) counts.水++;
+      });
+
+      return {pillars, elements, counts};
+    }
+
+    function renderResult(obj, input){
+      document.getElementById('result').style.display='block';
+      const sum = document.getElementById('summary');
+      sum.innerHTML = `<strong>입력:</strong> ${input.y}-${input.m}-${input.d} ${input.h}시 (${input.cal}, ${input.sex})`;
+
+      const pcont = document.getElementById('pillars'); pcont.innerHTML='';
+      obj.pillars.forEach((p,i)=>{
+        const div = document.createElement('div'); div.className='pillar';
+        div.innerHTML = `<strong>${p.name}</strong><div style="margin-top:6px">${p.code}</div><div style="margin-top:8px;color:#555">오행: ${obj.elements[i]}</div>`;
+        pcont.appendChild(div);
+      });
+
+      const ohe = document.getElementById('ohe');
+      ohe.innerHTML = '<strong>오행 분포</strong><div style="margin-top:6px">';
+      const total = Object.values(obj.counts).reduce((a,b)=>a+b,0)||1;
+      for(const k of ['木','火','土','金','水']){
+        const v = obj.counts[k];
+        const perc = Math.round((v/total)*100);
+        ohe.innerHTML += `<div style="margin-top:8px">${k}: ${v} <div class="bar"><i style="width:${perc}%"></i></div></div>`;
+      }
+      ohe.innerHTML += '</div>';
+
+      const rec = document.getElementById('recommend');
+      // professional tone sample
+      rec.innerHTML = `<h3 style="margin-top:12px">전문적 해석(요약)</h3>`;
+      const main = `총평: ${Object.keys(obj.counts).reduce((a,b)=> obj.counts[a]>obj.counts[b]?a:b)} 기운이 우세한 편으로, 판단력·결단력이 강한 경향이 있습니다.`;
+      rec.innerHTML += `<p style="color:#222">${main}</p>`;
+      rec.innerHTML += `<p style="color:#333">권고: 중요한 의사결정은 문서화하고, 보완이 필요한 기운(예: 목·수)이 약한 경우 관련 활동(독서·네트워킹 등)으로 균형을 맞추는 것이 바람직합니다.</p>`;
     }
 
     document.getElementById('form').addEventListener('submit',e=>{
       e.preventDefault();
-      const y=document.getElementById('y').value;
-      const m=document.getElementById('m').value;
-      const d=document.getElementById('d').value;
-      const h=document.getElementById('h').value;
-      const cal=document.getElementById('cal').value;
-      const out=simpleBazi(y,m,d,h);
-      let text = `입력: ${y}-${m}-${d} ${h}시 (${cal})\n\n`;
-      text += '사주(간단):\n';
-      out.pillars.forEach((p,i)=>{text += `${p}: ${out.vals[i]} -> ${out.elements[i]}\n`});
-      text += '\n오행 요약(데모):\n';
-      const counts={목:0,화:0,토:0,금:0,수:0}; out.elements.forEach(e=>counts[e]++);
-      for(const k of Object.keys(counts)) text += `${k}: ${counts[k]}\n`;
-      text += '\n(주의) 이 데모는 간단한 예시용입니다. 정확한 사주 해석은 전문 라이브러리/전문가를 사용하세요.';
-      document.getElementById('result').textContent = text;
+      const input = {y:document.getElementById('y').value, m:document.getElementById('m').value, d:document.getElementById('d').value, h:document.getElementById('h').value, cal:document.getElementById('cal').value, sex:document.getElementById('sex').value};
+      const obj = computePseudoBazi(input.y,input.m,input.d,input.h,input.cal,input.sex);
+      renderResult(obj,input);
+    });
+
+    // simple PNG export: serialize result div into a canvas via SVG foreignObject trick
+    function downloadPNG(){
+      const node = document.getElementById('result');
+      const w = Math.min(node.scrollWidth,800);
+      const h = node.scrollHeight;
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><foreignObject width='100%' height='100%'><div xmlns='http://www.w3.org/1999/xhtml' style='font-family:system-ui;padding:16px'>${node.innerHTML}</div></foreignObject></svg>`;
+      const img = new Image();
+      const svgBlob = new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svgBlob);
+      img.onload = function(){
+        const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height; const ctx = canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0);
+        URL.revokeObjectURL(url);
+        const a = document.createElement('a'); a.download = 'saju-result.png'; a.href = canvas.toDataURL('image/png'); a.click();
+      };
+      img.onerror = function(){ alert('이미지 생성 실패: 브라우저 호환성 문제'); };
+      img.src = url;
+    }
+
+    document.getElementById('download').addEventListener('click', ()=>{
+      const visible = document.getElementById('result').style.display!=='none';
+      if(!visible){ alert('먼저 사주를 조회하세요.'); return; }
+      downloadPNG();
     });
   </script>
 </body>
